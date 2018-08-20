@@ -1,0 +1,122 @@
+#/!bin/bash
+
+
+function createLocalUser () {
+
+	local REAL_NAME="$1"
+	local UNIQUE_ID="$2"
+	local ADMIN=$3
+	local RECORD_NAME=`echo $REAL_NAME | /usr/bin/tr  '[:upper:]' '[:lower:]' | /usr/bin/tr -d '[:space:]'`
+	local MAX_ID=$(($UNIQUE_ID + 10))
+	local PASSWORD=`echo $RECORD_NAME | /sbin/md5`
+
+
+	#	verify local user account
+	if ! /usr/bin/dscl . -read /Users/"$RECORD_NAME" &>/dev/null; then 
+
+		#	find next available UniqueID
+		while [[ $UNIQUE_ID -le $MAX_ID ]]; do
+		    USER=`/usr/bin/dscl /Local/Default -search /Users UniqueID "$UNIQUE_ID"| /usr/bin/awk '/UniqueID/ {print $1}' 2> /dev/null`
+		    
+	    	#	found available UniqueID
+		    if [[ -z $USER ]]; then break; fi
+			
+			#	increment unique id
+		    ((UNIQUE_ID++))
+		done
+
+		#	error if max id is reached
+		if [[ $UNIQUE_ID -eq $MAX_ID ]]; then 
+			echo "ERROR: Unable to find a UniqueID within specified range." >&2
+			return $LINENO
+		fi
+
+		#	error if missing paramters
+		if [[ -z $RECORD_NAME ]] || [[ -z $REAL_NAME ]] || [[ -z $UNIQUE_ID ]] || [[ -z $ADMIN ]] || [[ -z PASSWORD ]]; then 
+			echo "ERROR: Missing required parameter for user account creation." >&2
+			return $LINENO
+		fi
+
+		if ! /usr/bin/dscl . create /Users/$RECORD_NAME 2> /dev/null; then 
+			echo "ERROR: Unable to create user account [$RECORD_NAME]." >&2
+			return $LINENO
+		fi
+
+		if ! /usr/bin/dscl . create /Users/$RECORD_NAME RealName "$REAL_NAME" 2> /dev/null; then 
+			echo "ERROR: Unable to specify real name [$REAL_NAME] for [$RECORD_NAME]." >&2
+			return $LINENO
+		fi
+
+		if ! /usr/bin/dscl . create /Users/$RECORD_NAME UserShell /bin/bash 2> /dev/null; then 
+			echo "ERROR: Unable to specify shell [/bin/bash] for [$RECORD_NAME]." >&2
+			return $LINENO
+		fi
+
+		if ! /usr/bin/dscl . create /Users/$RECORD_NAME RecordName $RECORD_NAME 2> /dev/null; then 
+			echo "ERROR: Unable to create record name for [$RECORD_NAME]." >&2
+			return $LINENO
+		fi
+
+		if ! /usr/bin/dscl . create /Users/$RECORD_NAME UniqueID "$UNIQUE_ID" 2> /dev/null; then 
+			echo "ERROR: Unable to specify a unique id [$UNIQUE_ID] for [$RECORD_NAME]." >&2
+			return $LINENO
+		fi
+
+		if ! /usr/bin/dscl . create /Users/$RECORD_NAME PrimaryGroupID 20 2> /dev/null; then 
+			echo "ERROR: Unable to assign user [$RECORD_NAME] to primary group [staff]." >&2
+			return $LINENO
+		fi
+
+		if [[ $UNIQUE_ID -lt 500 ]]; then
+
+			if ! /usr/bin/dscl . create /Users/$RECORD_NAME NFSHomeDirectory /private/var/$RECORD_NAME 2> /dev/null; then
+				echo "ERROR: Unable to create home directory [/priave/var/$RECORD_NAME] for [$RECORD_NAME]." >&2
+				return $LINENO
+			fi
+		else
+			if ! /usr/bin/dscl . create /Users/$RECORD_NAME NFSHomeDirectory /Users/$RECORD_NAME 2> /dev/null; then
+				echo "ERROR: Unable to create home directory [/Users/$RECORD_NAME] for [$RECORD_NAME]."
+				return $LINENO
+			fi
+		fi
+
+		if [[ $UNIQUE_ID -lt 500 ]]; then
+
+			if ! /usr/bin/dscl . create /Users/$RECORD_NAME IsHidden 1 2> /dev/null; then 
+				echo "ERROR: Unable to specify account as hidden for [$RECORD_NAME]." >&2
+				return $LINENO
+			fi
+		fi
+
+		if ! /usr/bin/dscl . passwd /Users/$RECORD_NAME ${PASSWORD:2:10} 2> /dev/null; then 
+			echo "ERROR: Unable to set password for [$RECORD_NAME]." >&2
+			return $LINENO
+		fi
+
+		if ! /usr/bin/dscl . read /Groups/admin GroupMembership | /usr/bin/grep "$RECORD_NAME" && $ADMIN; then 
+			if ! /usr/bin/dscl . append /Groups/admin GroupMembership $RECORD_NAME; then 
+				echo "ERROR: Unable to add [$RECORD_NAME] to admin group."
+				return $LINENO
+			fi
+		fi
+
+		return 0 
+
+	else
+
+		echo  "User \"$RECORD_NAME\" already exist."
+		return 0
+	fi
+}
+
+
+function main () {
+
+	createLocalUser "Joe Smith" 501 false 
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+    main
+fi
