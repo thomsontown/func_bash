@@ -1,0 +1,63 @@
+#!/bin/bash
+# set -x
+
+#	function to display errors 
+function displayDialog() {
+
+	COUNT=$#
+	for ((INDEX=1;INDEX<=$COUNT;INDEX++)); do 
+		case "$INDEX" in 
+			1)	if [[ ${#1} -ne 0 ]]; then COMMAND="${COMMAND}display dialog \"$1\"";fi ;;
+			2)	if [[ ${#1} -ne 0 ]]; then COMMAND="$COMMAND default answer \"$1\""	;fi ;; 	# allow for null?
+			3)	if [[ ${#1} -ne 0 ]]; then COMMAND="$COMMAND hidden answer $1"		;fi ;;
+			4)	if [[ ${#1} -ne 0 ]]; then COMMAND="$COMMAND buttons $1"			;fi ;;
+			5)	if [[ ${#1} -ne 0 ]]; then COMMAND="$COMMAND default button \"$1\""	;fi ;;
+			6)	if [[ ${#1} -ne 0 ]]; then COMMAND="$COMMAND cancel button \"$1\""	;fi ;;
+			7)	if [[ ${#1} -ne 0 ]]; then COMMAND="$COMMAND with title \"$1\""		;fi ;;
+			8)	if [[ ${#1} -ne 0 ]]; then COMMAND="$COMMAND with icon $1"			;fi ;;
+			9)	if [[ ${#1} -ne 0 ]]; then COMMAND="$COMMAND giving up after $1"	;fi 
+		esac	
+		shift
+	done 
+
+
+	if ! /usr/bin/osascript -e "$COMMAND"; then
+		echo "ERROR: Unable to get results from dialog." >&2
+		return $LINENO
+	fi
+
+	# $1	display dialog "Text goes here." 
+	# $2	default answer "$USER" 
+	# $3	hidden answer "true" 
+	# $4	buttons "{\"OK\"}"
+	# $5	default button "OK" 
+	# $6	cancel button "Cancel" 
+	# $7	with title "$7" 
+	# $8	with icon "(POSIX file \"/System/Library/CoreServices/Finder.app/Contents/Resources/Finder.icns\")"
+	# $9	giving up after "30"
+
+	# IFS=$',' DIALOG_RESULTS=(`displayDialog "$DISPLAY_DIALOG" "$DEFAULT_ANSWER" "$HIDDEN_ANSWER" "{\"Ok\"}" "$DEFAULT_BUTTON" "$CANCEL_BUTTON" "TITLE" "$ICON" "$TIMEOUT"`)
+
+}
+
+
+function main () {
+
+	if ! IFS="," COMPUTER_NAME=(`displayDialog "Enter new computer name:" "$HOSTNAME" "$HIDDEN_ANSWER" "{\"Ok\"}" "Ok" "$CANCEL_BUTTON" "Change Computer Name" "$ICON" "$TIMEOUT"`); then
+		echo "ERROR: Unable to get results from dialog." >&2
+		exit $LINENO
+	fi
+
+	if [ ${#COMPUTER_NAME[@]} -eq 2 ]; then  echo ${COMPUTER_NAME[1]} | /usr/bin/awk -F":" '{print $2}'; fi
+	
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+    main
+fi
+
+
+
+
