@@ -1,0 +1,44 @@
+#!/bin/bash
+
+
+LOG_PATH="$HOME/Desktop/myfile.log"
+
+
+function writeLog () {
+
+	#	set local log text
+	local LOG_TEXT="$1"
+
+	#	set local default log file path if not globally defined
+	if [ -z "$LOG_PATH" ]; then 
+		local LOG_PATH="${0%.*}.log"
+	fi
+
+	#	create log file if not found
+	if [ ! -w "$LOG_PATH" ]; then
+		if ! /usr/bin/touch "$LOG_PATH" 2> /dev/null; then
+			echo "ERROR: Unable to create log file [$LOG_PATH]." >&2
+			return $LINENO
+		fi
+	fi
+	
+	#	write to log file 
+	if echo "`/bin/date +"%b %d %H:%M:%S"` $HOSTNAME ${0##*/}[$$] $LOG_TEXT" | /usr/bin/tee -a "$LOG_PATH"; then 
+			return 0
+	else
+			echo "ERROR: Unable to create log file [$LOG_PATH]." >&2
+			return $LINENO
+	fi
+
+}
+
+
+function main () {
+	writeLog "My log message goes here."
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+    main
+fi
