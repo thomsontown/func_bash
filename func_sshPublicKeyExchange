@@ -1,0 +1,59 @@
+#!/bin/bash
+
+
+function sshPublicKeyExchange () {
+
+	local EXCHANGE_TARGET_ID="$1"
+	local EXCHANGE_TARGET_NAME="$2"
+
+	#	verify parameters
+	if [ -z $EXCHANGE_TARGET_ID ] || [ -z $EXCHANGE_TARGET_NAME ]; then
+		echo "ERROR: Missing expected parameter." >&2
+		return $LINENO
+	fi
+
+	#	for sudo or root user
+	if [[ $EUID -eq 0 ]]; then 
+
+		#	generate key pair if missing
+		if [ ! -f "/var/root/.ssh/id_rsa" ]; then
+			if ! /usr/bin/ssh-keygen -t rsa -N "" -q -f "/var/root/.ssh/id_rsa" &> /dev/null; then
+				echo "ERROR: Unable to generate RSA key pair." >&2
+				return $LINENO
+			fi
+		fi
+
+		if ! /usr/local/bin/ssh-copy-id -f -o StrictHostKeyChecking=no -i /"var/root/.ssh/id_rsa.pub" "${EXCHANGE_TARGET_ID}"@"${EXCHANGE_TARGET_NAME}" &> /dev/null; then
+			echo "ERROR: Unable to copy public key to specified host [$EXCHANGE_TARGET_NAME]." >&2
+			return $LINENO
+		fi
+
+
+	#	for console user	
+	else
+				#	generate key pair if missing
+		if [ ! -f "${HOME%/}/.ssh/id_rsa" ]; then
+			if ! /usr/bin/ssh-keygen -t rsa -N "" -q -f "${HOME%/}/.ssh/id_rsa" &> /dev/null; then
+				echo "ERROR: Unable to generate RSA key pair." >&2
+				return $LINENO
+			fi
+		fi
+
+		if ! /usr/local/bin/ssh-copy-id -f -o StrictHostKeyChecking=no -i "${HOME%/}/.ssh/id_rsa.pub" "${EXCHANGE_TARGET_ID}"@"${EXCHANGE_TARGET_NAME}" &> /dev/null; then
+			echo "ERROR: Unable to copy public key to specified host [$EXCHANGE_TARGET_NAME]." >&2
+			return $LINENO
+		fi
+	fi
+}
+
+
+function main () {
+
+	sshPublicKeyExchange
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+    main
+fi
