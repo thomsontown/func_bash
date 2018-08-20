@@ -1,0 +1,42 @@
+#!/bin/bash
+
+
+function getDefaultIP {
+
+	INET_IF=(`/usr/sbin/netstat -nrf inet | /usr/bin/awk '/^default/ { print $6}' 2> /dev/null`)
+
+	if [ -n "$INET_IF" ]; then
+		#	get ip address of default network interface
+		INET_IP=`/sbin/ifconfig ${INET_IF[${#INET_IF[@]}-1]} inet 2> /dev/null | /usr/bin/awk '/inet/ {print $2}'`
+
+		if [ -n "$INET_IP" ]; then
+			echo $INET_IP
+			return 0		
+		else
+			echo "ERROR: Unable to determine default network address." >&2
+			return $LINENO
+		fi
+
+	else
+		echo "ERROR: Unable to determine default network interface." >&2
+		return $LINENO
+	fi
+}
+
+
+function main {
+
+	if INET_IP=`getDefaultIP`; then
+		echo "Successfully found default network address: [$INET_IP]."	
+	else
+		echo "ERROR: Oops! Something went wrong." >&2
+		exit $LINENO
+	fi
+
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+    main
+fi
