@@ -1,0 +1,59 @@
+#!/bin/bash
+
+
+function enableShare () {
+
+	local FILE_SHARE_PATH="$1"
+	local FILE_SHARE_NAME="$2"
+	local FILE_SHARE_TYPE="$3"
+	local FILE_SHARE_OWNER="$4"
+	
+	#	verify file share path exist
+	if ! [ -d "$FILE_SHARE_PATH" ]; then
+		echo "ERROR: Unable to find specified path for [$FILE_SHARE_PATH]." >&2
+		return $LINENO
+	fi
+
+	#	enable file share
+	if ! /usr/sbin/sharing -l | grep -c "$FILE_SHARE_PATH" &> /dev/null; then
+		if ! /usr/sbin/sharing -a "$FILE_SHARE_PATH" -n "$FILE_SHARE_NAME" -s 100 -g 000; then
+			echo "ERROR: Unable to enable file share for [$FILE_SHARE_NAME]." >&2
+			return $LINENO
+		fi
+	fi
+
+	#	set file share ownership (optional)
+	if [ -n $FILE_SHARE_OWNER ]; then 
+
+		#	verify file share ownership format
+		if ! echo $FILE_SHARE_OWNER | /usr/bin/grep ":" &> /dev/null; then
+			echo "ERROR: Expected format not found [user:group]." >&2
+			return $LINENO
+		fi
+
+		#	set ownership as spcified
+		if ! /usr/sbin/chown -R "$FILE_SHARE_OWNER" "$FILE_SHARE_PATH" &> /dev/null; then
+			echo  "ERROR: Unable to set permissions for [$FILE_SHARE_PATH]." >&2
+			return $LINENO
+		fi
+	fi
+
+	return 0
+}
+
+
+function main () {
+
+	# $1 path to share	
+	# $2 name of share  	
+	# $3 type afp=100 smb=001 both=101
+	# $4 ownership owner:group 	
+	enableShare "/Users/test" "Bogus" "101" "macsuper:staff"
+	
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+    main
+fi
