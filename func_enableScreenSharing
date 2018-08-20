@@ -1,0 +1,70 @@
+#!/bin/bash
+
+
+function enableScreenSharing () {
+	
+	local ONLY_THESE_USERS=$1
+
+	#	enable screen sharing
+	if ! /bin/launchctl list com.apple.screensharing &> /dev/null; then
+		if ! /bin/launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist &> /dev/null; then
+			echo "ERROR: Unable to enable ScreenSharing." >&2
+			return $LINENO
+		fi
+	fi
+
+	if [[ -z ${ONLY_THESE_USERS[@]} ]]; then
+
+		#	rename group to allow all user access
+		if /usr/bin/dscl . -read /Groups/com.apple.access_screensharing &>/dev/null; then
+			if ! /usr/bin/dscl . change /Groups/com.apple.access_screensharing RecordName com.apple.access_screensharing com.apple.access_screensharing-disabled; then
+				echo "ERROR: Unable to modifiy ScreenSharing permissions to allow all user access." >&2
+				return $LINENO
+			fi
+		fi
+
+	else 
+
+		# rename group to allow specific users access	
+		if /usr/bin/dscl . -read /Groups/com.apple.access_screensharing-disabled &>/dev/null; then
+			if ! /usr/bin/dscl . -change /Groups/com.apple.access_screensharing-disabled RecordName com.apple.access_screensharing-disabled com.apple.access_screensharing; then
+				echo "ERROR: Unable to modifiy ScreenSharing permissions to allow specific user access." >&2
+				return $LINENO
+			fi
+		fi
+
+		#	enumerate user to add to group
+		for ONLY_THIS_USER in ${ONLY_THESE_USERS[@]}; do
+
+			#	get current membership
+			GROUP_MEMBERSHIP=(`/usr/bin/dscl . -read /Groups/com.apple.access_screensharing GroupMembership | /usr/bin/awk '/GroupMembership/ {for(i=2;i<=NF;i++) print $i}'`)
+
+			#	only add user to group if not already present
+			if [[ ! "${GROUP_MEMBERSHIP[@]}" =~ "$ONLY_THIS_USER" ]]; then
+
+				#	add user to group
+				if ! /usr/bin/dscl . -append /Groups/com.apple.access_screensharing GroupMembership "$ONLY_THIS_USER" &> /dev/null; then
+					echo "ERROR: Unable to add [$ONLY_THIS_USER] to ScreenSharing access group." >&2
+					return $LINENO
+				fi
+			fi
+		done
+
+		return 0
+	fi
+}
+
+
+
+function main () {
+
+	#	enable screen sharing for all users
+	enableScreenSharing 
+	
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+    main
+fi
