@@ -1,0 +1,69 @@
+#!/bin/bash
+
+
+function enableSSH () {
+
+	local ONLY_THESE_USERS=$1
+	
+	#	enable ssh 
+	if ! /usr/sbin/systemsetup -setremotelogin on &> /dev/null; then
+
+		echo "ERROR: Unable to enable SSH." >&2
+		return $LINENO
+	fi
+
+
+	if [[ -z ${ONLY_THESE_USERS[@]} ]]; then
+
+		#	rename group to allow all users access
+		if /usr/bin/dscl . -read /Groups/com.apple.access_ssh &>/dev/null; then
+			if ! /usr/bin/dscl . change /Groups/com.apple.access_ssh RecordName com.apple.access_ssh com.apple.access_ssh-disabled; then
+				echo "ERROR: Unable to modifiy SSH permissions to allow all user access." >&2
+				return $LINENO
+			fi
+		fi
+
+	else 
+
+		# rename group to allow specific users access	
+		if /usr/bin/dscl . -read /Groups/com.apple.access_ssh-disabled &>/dev/null; then
+			if ! /usr/bin/dscl . change /Groups/com.apple.access_ssh-disabled RecordName com.apple.access_ssh-disabled com.apple.access_ssh; then
+				echo "ERROR: Unable to modifiy SSH permissions to allow specific user access." >&2
+				return $LINENO
+			fi
+		fi
+
+		#	enumerate user to add to group
+		for ONLY_THIS_USER in ${ONLY_THESE_USERS[@]}; do
+
+			#	get current membership
+			GROUP_MEMBERSHIP=(`/usr/bin/dscl . -read /Groups/com.apple.access_ssh GroupMembership | /usr/bin/awk '/GroupMembership/ {for(i=2;i<=NF;i++) print $i}'`)
+
+			#	only add user to group if not already present
+			if [[ ! "${GROUP_MEMBERSHIP[@]}" =~ "$ONLY_THIS_USER" ]]; then
+
+				#	add user to group
+				if ! /usr/bin/dscl . -append /Groups/com.apple.access_ssh GroupMembership "$ONLY_THIS_USER" &> /dev/null; then
+					echo "ERROR: Unable to add [$ONLY_THIS_USER] to SSH access group." >&2
+					return $LINENO
+				fi
+			fi
+		done
+
+		return 0
+	fi
+}
+
+
+function main () {
+
+	#	enable ssh for all users
+	enableSSH 
+	
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+    main
+fi
