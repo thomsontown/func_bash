@@ -5,7 +5,7 @@ function isAdAccessible () {
 
 	local SEARCH_PATH=`/usr/bin/dscl /Search -read . CSPSearchPath | /usr/bin/grep "Active Directory" 2> /dev/null`
 
-	if /usr/bin/dscl "$SEARCH_PATH" read . dsAttrTypeNative:DomainName &> /dev/null; then 
+	if /usr/bin/dscl "${SEARCH_PATH#?}" read . dsAttrTypeNative:DomainName &> /dev/null; then 
 		return 0
 	else 
 		return 1
