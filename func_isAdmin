@@ -1,0 +1,32 @@
+#!/bin/bash
+
+
+function isAdmin () {
+	
+	local USERNAME="$1"
+	local ADMINS=(`/usr/bin/dscl . -read /Groups/admin GroupMembership | /usr/bin/awk '{ $1 = ""; print }'`)
+	
+	if [[  "${ADMINS[@]}" =~ "$USERNAME" ]]; then
+		true
+		return 0
+	else 
+		false
+		return 1
+	fi
+}
+
+
+function main () {
+
+	if isAdmin macsuper; then
+		echo "Yes"
+	else
+		echo "No"
+	fi
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+    main
+fi
