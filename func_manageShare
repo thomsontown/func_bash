@@ -1,22 +1,40 @@
 #!/bin/bash
 
 
-function enableShare () {
+function manageShare () {
 
 	local FILE_SHARE_PATH="$1"
 	local FILE_SHARE_NAME="$2"
-	local FILE_SHARE_TYPE="$3"
+	local FILE_SHARE_TYPE="$3"	# afp=100 smb=001 both=101 none=000
 	local FILE_SHARE_OWNER="$4"
 	
 	#	verify file share path exist
 	if ! [ -d "$FILE_SHARE_PATH" ]; then
-		echo "ERROR: Unable to find specified path for [$FILE_SHARE_PATH]." >&2
-		return $LINENO
+		if ! /bin/mkdir -p "$FILE_SHARE_PATH"; then 
+			echo "ERROR: Unable to create specified folder for [$FILE_SHARE_PATH]." >&2
+			return $LINENO
+		fi
+	fi
+
+	#	enable smb
+	if ! /bin/launchctl list com.apple.smbd &> /dev/null && [ ${FILE_SHARE_TYPE:2:2} -eq 1 ]; then 
+		if ! /bin/launchctl load -w /System/Library/LaunchDaemons/com.apple.smbd.plist; then
+			echo "ERROR: Unable to load SMB sharing service."
+			return $LINENO
+		fi
+	fi 
+
+	#	enable afp
+	if ! /bin/launchctl list com.apple.AppleFileServer &> /dev/null && [ ${FILE_SHARE_TYPE:0:0} -eq 1 ]; then 
+		if ! /bin/launchctl load -w /System/Library/LaunchDaemons/com.apple.AppleFileServer.plist; then
+			echo "ERROR: Unable to load AFP sharing service."
+			return $LINENO
+		fi
 	fi
 
 	#	enable file share
 	if ! /usr/sbin/sharing -l | grep -c "$FILE_SHARE_PATH" &> /dev/null; then
-		if ! /usr/sbin/sharing -a "$FILE_SHARE_PATH" -n "$FILE_SHARE_NAME" -s 100 -g 000; then
+		if ! /usr/sbin/sharing -a "$FILE_SHARE_PATH" -n "$FILE_SHARE_NAME" -s $FILE_SHARE_TYPE -g 000; then
 			echo "ERROR: Unable to enable file share for [$FILE_SHARE_NAME]." >&2
 			return $LINENO
 		fi
@@ -46,9 +64,9 @@ function main () {
 
 	# $1 path to share	
 	# $2 name of share  	
-	# $3 type afp=100 smb=001 both=101
+	# $3 type afp=100 smb=001 both=101 none=000
 	# $4 ownership owner:group 	
-	enableShare "/Users/test" "Bogus" "101" "macsuper:staff"
+	manageShare "/Users/test" "Bogus" "101" "macsuper:staff"
 	
 }
 
