@@ -1,0 +1,31 @@
+#!/bin/bash 
+
+
+function isAdAccessible () {
+
+	if /usr/bin/dscl /Search -read . CSPSearchPath | /usr/bin/grep "Active Directory" &> /dev/null; then
+		true
+		return 0
+	else
+		false
+		return 1
+	fi 
+
+}
+
+
+function main () {
+
+	if isAdAccessible; then 
+		echo "Yes"
+	else
+		echo "No"
+	fi
+
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+    main
+fi
