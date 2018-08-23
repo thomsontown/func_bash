@@ -27,7 +27,7 @@ function scriptInstall () {
 	else
 		#	verify destination folder exists
 		if [ -w "/usr/local/bin" ]; then 
-			if ! /bin/mkdir -p "/usr/local/bin"; then 
+			if ! /bin/mkdir -p -m 0755 "/usr/local/bin"; then 
 				echo "ERROR: Unable to create required folder [/usr/local/bin]." >&2
 				return $LINENO
 			fi
