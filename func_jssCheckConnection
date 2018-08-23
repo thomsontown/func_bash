@@ -1,0 +1,38 @@
+#!/bin/bash
+
+
+function jssCheckConnection () {
+
+	local JSS_URL=`/usr/bin/defaults read /Library/Preferences/com.jamfsoftware.jamf.plist jss_url 2> /dev/null`
+
+	if ! echo $JSS_URL | /usr/bin/grep -io "^https://" &> /dev/null; then 
+		echo "ERROR: Unable to determine URL for the JSS." >&2
+		return $LINENO
+	fi
+
+	local JSS_CONNECTION=`/usr/bin/curl -s -k --connect-timeout 10 -sw "%{http_code}" "${JSS_URL%/}/JSSCheckConnection" -o /dev/null`
+
+	if [ "$JSS_CONNECTION" -eq 200 ] || [ "$JSS_CONNECTION" -eq 403 ]; then 
+		return 0
+	else
+		return "$JSS_CONNECTION"
+	fi
+
+}
+
+
+function main () {
+
+	if jssCheckConnection; then
+		echo "Connection available."
+	else
+		echo "Connection unavailable."
+	fi
+
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+    main
+fi
