@@ -1,0 +1,55 @@
+#!/bin/bash
+
+set -x
+
+function scriptInstall () {
+
+	local MODE="$1"
+
+	#	set file mode if not specified
+	if [ -z "$MODE" ]; then 
+		local MODE=0755
+	fi
+
+	#	verify if file already exists
+	if [ -w "/usr/local/bin/${0##*/}" ]; then
+
+		#	generate checksums for source and destination files
+		SRCSUM=`/usr/bin/cksum "$0" | /usr/bin/awk '{print $1}'`
+		DSTSUM=`/usr/bin/cksum "/usr/local/bin/${0##*/}" | /usr/bin/awk '{print $1}'`
+
+		#	compatre checksums to determine if update required
+		if [ $SRCSUM != $DSTSUM ]; then
+			if ! /usr/bin/install -m "$MODE" "$0" "/usr/local/bin/${0##*/}" &> /dev/null; then 
+				echo "ERROR: Unable to install file [/usr/local/bin/${0##*/}]." >&2
+				return $LINENO
+			fi
+		fi
+	else
+		#	verify destination folder exists
+		if [ -w "/usr/local/bin" ]; then 
+			if ! /bin/mkdir -p "/usr/local/bin"; then 
+				echo "ERROR: Unable to create required folder [/usr/local/bin]." >&2
+				return $LINENO
+			fi
+		fi
+
+		if ! /usr/bin/install -m "$MODE" "$0" "/usr/local/bin/${0##*/}" &> /dev/null; then 
+			echo "ERROR: Unable to install file [/usr/local/bin/${0##*/}]." >&2
+			return $LINENO
+		fi
+	fi
+}
+
+
+function main () {
+
+	scriptInstall
+
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+	main
+fi
