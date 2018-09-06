@@ -1,0 +1,60 @@
+#!/bin/bash
+
+
+function getPackageVersion () {
+
+	local PKG_PATH="$1"
+
+	if [ -z "$PKG_PATH" ]; then 
+		echo "ERROR: Missing parameter."
+		return $LINENO
+	fi
+
+	#	verify digital signature of package
+	if ! /usr/sbin/pkgutil --check-signature  "$PKG_PATH" &> /dev/null; then
+		echo "ERROR: The specified file is missing or not digitally signed. [$PKG_PATH]." >&2
+		return $LINENO
+	fi
+
+	#	get path of PackageInfo file
+	if ! PKG_INFO_PATH=`/usr/bin/xar -t -f "$PKG_PATH" | /usr/bin/grep PackageInfo`; then 
+		echo "ERROR: Unable to find package file information." >&2
+		return $LINENO
+	fi
+
+	#	create temp folder to extract package contents
+	local TMP_PATH=`/usr/bin/mktemp -d /tmp/PKGINFO.XXXX`
+
+	#	change to temp folder
+	pushd "$TMP_PATH" > /dev/null
+
+	#	extract PackageInfo file 
+	if ! /usr/bin/xar -x -f "$PKG_PATH" "$PKG_INFO_PATH"; then
+		echo "ERROR: Unable to extract package file information." >&2
+		return $LINENO
+	fi
+
+	#	get package version from info file
+	if ! PKG_VERSION=`/usr/bin/xpath "$TMP_PATH/$PKG_INFO_PATH" "string(/pkg-info[1]/@version)" 2> /dev/null`; then 
+		echo "ERROR: Unable to read version information from package file information." >&2
+		return $LINENO
+	else 
+		/bin/rm -rf "$TMP_PATH"
+		echo $PKG_VERSION
+		return 0
+	fi
+
+}
+
+
+function main () {
+
+	getPackageVersion "/path/to/package.pkg"
+
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+    main
+fi
