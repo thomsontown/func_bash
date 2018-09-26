@@ -1,0 +1,54 @@
+#!/bin/bash
+
+
+function getDateDiff () {
+
+	local FIRST_DATE="$1"
+	local SECOND_DATE="$2"
+
+	#	first date is required
+	if [ -z "$FIRST_DATE" ]; then 
+		echo "ERROR: Missing date parameter." >&2
+		return $LINENO
+	fi
+
+	# 	second date is optional with current date as the default
+	if [ -z "$SECOND_DATE" ]; then 
+		local SECOND_DATE=`/bin/date +"%Y-%m-%d %l:%M:%S %z"`
+	fi
+	
+	#	convert first date to epoch
+	if ! local FIRST_DATE_EPOCH=`/bin/date -j -f "%Y-%m-%d %l:%M:%S %z" "$FIRST_DATE" +"%s" 2> /dev/null`; then
+		echo "ERROR: Unable to convert first date."
+		return $LINENO
+	fi
+
+	#	convert second date to epoch
+	if ! local SECOND_DATE_EPOCH=`/bin/date -j -f "%Y-%m-%d %l:%M:%S %z" "$SECOND_DATE" +"%s" 2> /dev/null`; then
+		echo "ERROR: Unable to convert second date."
+		return $LINENO
+	fi
+
+	#	calculate number of days between the dates
+	if ! DATE_DIFF=`/bin/expr \( $SECOND_DATE_EPOCH - $FIRST_DATE_EPOCH \) / 86400 2> /dev/null`; then 
+		echo "ERROR: Unable to calculate date differential." >&2
+		return $LINENO
+	else
+		echo $DATE_DIFF
+		return 0
+	fi
+}
+
+
+function main () {
+
+	getDateDiff "2017-07-17 12:00:00 -0400"
+	getDateDiff "2014-01-01 00:00:00 -0400" "2014-01-07 00:00:00 -0400"
+
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+    main
+fi
