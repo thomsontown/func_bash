@@ -1,0 +1,47 @@
+#!/bin/bash
+
+
+function octalMode () {
+
+	local TARGET_PATH="$1"
+
+	if [ -r "$TARGET_PATH" ]; then 
+
+		/usr/bin/stat -f%Mp%Lp "$TARGET_PATH"
+		return 0
+	else
+
+		echo "ERROR: Specified path not found [$TARGET_PATH]."
+		return $LINENO
+	fi
+
+}
+
+
+function octalOwner () {
+	
+	local TARGET_PATH="$1"
+
+	if [ -r "$TARGET_PATH" ]; then 
+
+		/usr/bin/stat -f%u:%g "$TARGET_PATH"
+		return 0
+	else
+
+		echo "ERROR: Specified path not found [$TARGET_PATH]."
+		return $LINENO
+	fi
+}
+
+
+function main () {
+
+	octalMode "/usr/local/bin"
+	octalOwner "/usr/local/bin"
+
+}
+
+
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+	main
+fi
