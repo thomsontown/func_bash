@@ -1,0 +1,45 @@
+#!/bin/bash
+
+
+function getAppVersion () {
+
+	local APP_PATH="$1"
+
+	if [ -z "$APP_PATH" ]; then 
+		echo "ERROR: Missing parameter."
+		return $LINENO
+	fi
+
+	if [ ! -r "${APP_PATH%.*}.app/Contents/Info.plist" ]; then
+		echo "ERROR: Application resource not found." >&2
+		return $LINENO
+	fi
+
+	#	get app version
+	if ! APP_VERSION=`/usr/bin/defaults read "${APP_PATH%.*}.app/Contents/Info.plist" CFBundleShortVersionString 2> /dev/null`; then
+
+		#	as alternate app version
+		APP_VERSION=`/usr/bin/defaults read "${APP_PATH%.*}.app/Contents/Info.plist" CFBundleVersionString 2> /dev/null`
+	fi
+
+	if [ -z $APP_VERSION ]; then
+		echo "ERROR: Unable to determine application version."
+		return $LINENO
+	fi
+
+	echo "$APP_VERSION"
+	return 0
+}
+
+
+function main () {
+	
+	getAppVersion "/Applications/Chess.app/"
+
+}
+
+
+#	run main if called directly
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+    main
+fi
