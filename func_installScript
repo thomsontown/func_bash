@@ -1,9 +1,15 @@
 #!/bin/bash
 
 
-function scriptInstall () {
+function installScript () {
 
-	local MODE="$1"
+	local SCRIPT_NAME="$1"
+	local MODE="$2"
+
+		#	set script name if not specified
+	if [ -z "$SCRIPT_NAME" ]; then 
+		local SCRIPT_NAME="${0##*/}"
+	fi
 
 	#	set file mode if not specified
 	if [ -z "$MODE" ]; then 
@@ -11,30 +17,30 @@ function scriptInstall () {
 	fi
 
 	#	verify if file already exists
-	if [ -w "/usr/local/bin/${0##*/}" ]; then
+	if [ -f "/usr/local/bin/$SCRIPT_NAME" ]; then
 
 		#	generate checksums for source and destination files
 		SRCSUM=`/usr/bin/cksum "$0" | /usr/bin/awk '{print $1}'`
-		DSTSUM=`/usr/bin/cksum "/usr/local/bin/${0##*/}" | /usr/bin/awk '{print $1}'`
+		DSTSUM=`/usr/bin/cksum "/usr/local/bin/$SCRIPT_NAME" | /usr/bin/awk '{print $1}'`
 
 		#	compatre checksums to determine if update required
-		if [ $SRCSUM != $DSTSUM ]; then
-			if ! /usr/bin/install -m "$MODE" "$0" "/usr/local/bin/${0##*/}" &> /dev/null; then 
-				echo "ERROR: Unable to install file [/usr/local/bin/${0##*/}]." >&2
+		if [ $SRCSUM -ne $DSTSUM ]; then
+			if ! /usr/bin/install -m "$MODE" "$0" "/usr/local/bin/$SCRIPT_NAME" &> /dev/null; then 
+				echo "ERROR: Unable to install file [/usr/local/bin/$SCRIPT_NAME]." >&2
 				return $LINENO
 			fi
 		fi
 	else
 		#	verify destination folder exists
-		if [ -w "/usr/local/bin" ]; then 
+		if [ -f "/usr/local/bin" ]; then 
 			if ! /bin/mkdir -p -m 0755 "/usr/local/bin"; then 
 				echo "ERROR: Unable to create required folder [/usr/local/bin]." >&2
 				return $LINENO
 			fi
 		fi
 
-		if ! /usr/bin/install -m "$MODE" "$0" "/usr/local/bin/${0##*/}" &> /dev/null; then 
-			echo "ERROR: Unable to install file [/usr/local/bin/${0##*/}]." >&2
+		if ! /usr/bin/install -m "$MODE" "$0" "/usr/local/bin/${SCRIPT_NAME}" &> /dev/null; then 
+			echo "ERROR: Unable to install file [/usr/local/bin/${SCRIPT_NAME}]." >&2
 			return $LINENO
 		fi
 	fi
