@@ -4,7 +4,7 @@
 LOG_PATH="$HOME/Desktop/myfile.log"
 
 
-function writeLog () {
+function writeLog() {
 
 	#	set local log text
 	local LOG_TEXT="$1"
@@ -30,6 +30,8 @@ function writeLog () {
 			return $LINENO
 	fi
 
+	#	2>&1 | (while read INPUT; do writeLog "$INPUT "; done)
+	#	 >&2 | (while read INPUT; do writeLog "$INPUT "; done)
 }
 
 
