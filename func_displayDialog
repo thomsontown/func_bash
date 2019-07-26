@@ -41,6 +41,34 @@ function displayDialog() {
 }
 
 
+function inputbox () {
+	
+	COUNT=$#
+	if [ -n "$COMMAND" ]; then unset COMMAND; fi
+	
+	for ((INDEX=1;INDEX<=$COUNT;INDEX++)); do 
+		case "$INDEX" in 
+			1)	if [[ "$1" != "." ]]; then COMMAND+="--text \"$1\""				;fi ;;
+			2)	if [[ "$1" != "" ]]; then COMMAND+=" --informative-text \"$1\""	;fi ;; 
+			3)	if [[ "$1" != "" ]]; then COMMAND+=" --title \"$1\""			;fi ;;
+			4)	if [[ "$1" != "" ]]; then COMMAND+=" --float"					;fi ;;
+			5)	if [[ "$1" != "" ]]; then COMMAND+=" --button1 \"$1\""			;fi ;;
+			6)	if [[ "$1" != "" ]]; then COMMAND+=" --button2 \"$1\""			;fi ;;
+			7)	if [[ "$1" != "" ]]; then COMMAND+=" --button3 \"$1\""			;fi ;;
+			8)	if [[ "$1" != "" ]]; then COMMAND+=" --timeout $1"				;fi ;;
+			8)	if [[ "$1" != "" ]]; then COMMAND+=" --string-output"			;fi ;;
+			9)	if [[ "$1" != "" ]]; then COMMAND+=" --no-show"					;fi 
+		esac	
+		shift
+	done	
+
+	RC=$(/bin/bash -c "$COCOADIALOG inputbox $COMMAND")
+	echo $RC
+
+	## inputbox "$DEFAULT_ANSWER" "$INPUT_PROMPT" "$TITLE" "$FLOAT" "$BUTTON_1" "$BUTTON_2" "$BUTTON_3" "$TIMEOUT" "$STRING_OUTPUT" "$NO_SHOW"
+}
+
+
 function main () {
 
 	if ! IFS="," COMPUTER_NAME=(`displayDialog "Enter new computer name:" "$HOSTNAME" "$HIDDEN_ANSWER" "{\"Ok\"}" "Ok" "$CANCEL_BUTTON" "Change Computer Name" "$ICON" "$TIMEOUT"`); then
@@ -49,7 +77,6 @@ function main () {
 	fi
 
 	if [ ${#COMPUTER_NAME[@]} -eq 2 ]; then  echo ${COMPUTER_NAME[1]} | /usr/bin/awk -F":" '{print $2}'; fi
-	
 }
 
 
